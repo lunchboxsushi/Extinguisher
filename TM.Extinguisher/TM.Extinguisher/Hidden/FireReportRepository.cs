@@ -6,30 +6,30 @@ namespace TM.Extinguisher
 {
     public class FireReportRepository
     {
-        public FireReportRepository()
-        {
-        }
+        private readonly object UpdateLock = new object();
 
-        public List<FireReportModel> GetReports()
+        public List<FireReport> GetReports()
         {
             return ExtinguisherDb.Fires.Value.ToList();
         }
 
-        public FireReportModel GetReport(int Id)
+        public FireReport GetReport(int Id)
         {
-            var _fires = ExtinguisherDb.Fires.Value.ToList();
-            var fire = _fires.FirstOrDefault(f => f.Id == Id);
+            var fire = ExtinguisherDb.Fires.Value.ToList().FirstOrDefault(f => f.Id == Id);
             if (fire == null) { FireNotFoundException(); }
             return fire;
         }
 
-        public void UpdateReport(FireReportModel model)
+        public void UpdateReport(FireReport model)
         {
-            var fire = ExtinguisherDb.Fires.Value.FirstOrDefault(f => f.Id == model.Id);
+            lock (UpdateLock)
+            {
+                var fire = ExtinguisherDb.Fires.Value.FirstOrDefault(f => f.Id == model.Id);
 
-            fire.Watering = model.Watering;
-            fire.LastUpdated = model.LastUpdated;
-            fire.FireLevel = model.FireLevel;
+                fire.Watering = model.Watering;
+                fire.LastUpdated = model.LastUpdated;
+                fire.FireLevel = model.FireLevel;
+            }
         }
 
         private void FireNotFoundException()

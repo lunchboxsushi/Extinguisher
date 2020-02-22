@@ -7,11 +7,11 @@ namespace TM.Extinguisher
     {
 
         private static bool IsInit = false;
-        public static Lazy<List<FireReportModel>> Fires => new Lazy<List<FireReportModel>>(() => Initialize());
+        private static List<FireReport> result = new List<FireReport>();
+        public static Lazy<List<FireReport>> Fires => new Lazy<List<FireReport>>(() => Initialize());
 
-        private static List<FireReportModel> Initialize()
+        private static List<FireReport> Initialize()
         {
-            var result = new List<FireReportModel>();
 
             Array values = Enum.GetValues(typeof(FireLevel));
             Random random = new Random();
@@ -20,13 +20,15 @@ namespace TM.Extinguisher
             {
                 for (var i = 1; i <= 5; i++)
                 {
-                    result.Add(new FireReportModel
+                    result.Add(new FireReport
                     {
                         Id = i,
                         FireLevel = (FireLevel)values.GetValue(random.Next(values.Length)),
-                }); ;
+                        LastUpdated = DateTime.Now
+                    });
                 }
             }
+            IsInit = true; 
 
             return result;
         }

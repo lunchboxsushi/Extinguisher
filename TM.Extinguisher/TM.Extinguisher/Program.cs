@@ -16,14 +16,11 @@ namespace TM.Extinguisher
             var run = true;
             var _fireService = new FireService();
 
-            var uiThread = new UIThread(_fireService);
-            var statusUpdateThread = new Thread(new ThreadStart(uiThread.UpdateUI));
-            statusUpdateThread.Start();
-            Thread.Sleep(1000);
+            InitStatusThread(_fireService);
 
             while (run)
             {
-                var fire = InputCycle(_fireService);
+                var fire = UserInputCycle(_fireService);
                 if (fire == null) continue;
 
                 // TODO: Implement Extinguish fire logic
@@ -32,7 +29,15 @@ namespace TM.Extinguisher
             }
         }
 
-        private static FireReportModel InputCycle(FireService _fireService)
+        private static void InitStatusThread(FireService _fireService)
+        {
+            var uiThread = new UIThread(_fireService);
+            var statusUpdateThread = new Thread(new ThreadStart(uiThread.UpdateUI));
+            statusUpdateThread.Start();
+            Thread.Sleep(1000);
+        }
+
+        private static FireReport UserInputCycle(FireService _fireService)
         {
             Console.SetCursorPosition(0, 6);
             var sb = new StringBuilder();

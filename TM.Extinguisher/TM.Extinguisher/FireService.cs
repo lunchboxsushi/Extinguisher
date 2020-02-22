@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -8,60 +9,25 @@ namespace TM.Extinguisher
     public class FireService
     {
         private FireReportRepository _fireRepo;
-        private Stopwatch _runtime = new Stopwatch();
 
         public FireService()
         {
             _fireRepo = new FireReportRepository();
-            _runtime.Start();
         }
 
-        public FireReportModel GetFireReport(int Id)
+        public FireReport GetFireReport(int Id)
         {
             return _fireRepo.GetReport(Id);
         }
 
-        public StringBuilder GetFormattedFireReportStasus()
+        public List<FireReport> GetFireReports()
         {
-            Console.SetCursorPosition(0, 0);
-            var sb = new StringBuilder();
-            sb.AppendLine($"Runtime: {_runtime.ElapsedMilliseconds / 1000} in seconds");
-            foreach (var fire in _fireRepo.GetReports())
-            {
-                sb.AppendLine($"Fire#: {fire.Id}, fire level: {fire.FireLevel}, Watering: {fire.Watering}");
-            }
-
-            return sb;
+            return _fireRepo.GetReports();
         }
-
-        public void UpdateFireReport(FireReportModel model)
+        public void UpdateFireReport(FireReport model)
         {
             _fireRepo.UpdateReport(model);
         }
-
-        public void ExtinguishFireReport(int Id)
-        {
-            // TODO: Can only extinguish 1 fire at a time
-
-            //check if anything else being watered
-            var reports = _fireRepo.GetReports();
-            var currentlyExtinguishing = reports.Where(r => r.Watering).FirstOrDefault();
-            var fireExtinguishOrder = reports.FirstOrDefault(r => r.Id == Id);
-
-            // do we need to stop previous watering?
-            if (currentlyExtinguishing?.Id != fireExtinguishOrder.Id) {
-                currentlyExtinguishing.Watering = false;
-                UpdateFireReport(currentlyExtinguishing);
-            }
-
-            fireExtinguishOrder.Watering = true;
-            fireExtinguishOrder.LastUpdated = DateTime.Now;
-            UpdateFireReport(fireExtinguishOrder);
-            
-            // TODO: Every 5 seconds decrease fire level while watering
-        }
-
-        // returns same level if fire not decreased
         private FireLevel DecreaseFireLevel(FireLevel fireLevel)
         {
             switch (fireLevel) {
@@ -72,14 +38,61 @@ namespace TM.Extinguisher
                 case FireLevel.MEDIUM:
                     return FireLevel.SMALL;
                 case FireLevel.LARGE:
-                    return FireLevel.SMALL;
+                    return FireLevel.MEDIUM;
                 case FireLevel.EPIC:
-                    return FireLevel.SMALL;
+                    return FireLevel.LARGE;
                 case FireLevel.DISASTER:
-                    return FireLevel.SMALL;
+                    return FireLevel.EPIC;
                 default:
                     return fireLevel;
             }
         }
+
+        // TODO:    Decrease fire level every 5 seconds of watering
+        //          If FireLevel = None make sure to stop watering                       
+        public void UpdateWateringStatusReports()
+        {
+            var reports = _fireRepo.GetReports();
+            var currentlyExtinguishing = reports.Where(r => r.Watering).FirstOrDefault();
+
+            if (currentlyExtinguishing == null) return;
+
+            var wateringDuration = (DateTime.Now - currentlyExtinguishing.LastUpdated).TotalSeconds; 
+
+            if (wateringDuration >= 5)
+            {
+                currentlyExtinguishing.FireLevel = DecreaseFireLevel(currentlyExtinguishing.FireLevel);
+                currentlyExtinguishing.LastUpdated = DateTime.Now;
+
+                if (currentlyExtinguishing.FireLevel == FireLevel.NONE)
+                {
+                    currentlyExtinguishing.Watering = false;
+                }
+
+                UpdateFireReport(currentlyExtinguishing);
+            }
+        }
+
+
+        // TODO: Can only extinguish 1 fire at a time
+        public void ExtinguishFireReport(int Id)
+        {
+
+            //check if anything else being watered
+            var reports = _fireRepo.GetReports();
+            var currentlyExtinguishing = reports.Where(r => r.Watering).FirstOrDefault();
+            var fireExtinguishOrder = reports.FirstOrDefault(r => r.Id == Id);
+
+            // do we need to stop previous watering?
+            if (currentlyExtinguishing != null && currentlyExtinguishing.Id != fireExtinguishOrder.Id) {
+                currentlyExtinguishing.Watering = false;
+                UpdateFireReport(currentlyExtinguishing);
+            }
+
+            fireExtinguishOrder.Watering = true;
+            fireExtinguishOrder.LastUpdated = DateTime.Now;
+            UpdateFireReport(fireExtinguishOrder);
+        }
+
     }
 }

@@ -2,7 +2,7 @@
 
 namespace TM.Extinguisher
 {
-    public class FireReportModel
+    public class FireReport
     {
         public int Id { get; set; }
         public bool Watering { get; set; }
